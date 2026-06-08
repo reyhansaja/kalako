@@ -3,10 +3,10 @@ import PDFDocument from "pdfkit";
 import { pool } from "../db.js";
 
 function getDateFilter(range) {
-  if (range === "monthly") return "DATE_FORMAT(t.created_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')";
-  if (range === "weekly") return "YEARWEEK(t.created_at, 1) = YEARWEEK(CURDATE(), 1)";
-  if (range === "yearly") return "YEAR(t.created_at) = YEAR(CURDATE())";
-  return "DATE(t.created_at) = CURDATE()";
+  if (range === "monthly") return "DATE_TRUNC('month', t.created_at) = DATE_TRUNC('month', CURRENT_DATE)";
+  if (range === "weekly") return "DATE_TRUNC('week', t.created_at) = DATE_TRUNC('week', CURRENT_DATE)";
+  if (range === "yearly") return "DATE_TRUNC('year', t.created_at) = DATE_TRUNC('year', CURRENT_DATE)";
+  return "t.created_at::date = CURRENT_DATE";
 }
 
 export async function getProductReport(req, res) {

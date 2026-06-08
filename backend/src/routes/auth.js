@@ -166,8 +166,9 @@ router.post('/client/signup-with-otp', async (req, res) => {
         `INSERT INTO clients
          (name, owner_name, owner_id_number, address, phone, email, subdomain, status, trial_ends_at,
           city, district, sub_district, province, store_photo_url)
-         VALUES (?,?,?,?,?,?,?,?, DATE_ADD(NOW(), INTERVAL 30 DAY),
-                 ?,?,?,?,?)`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8, NOW() + INTERVAL '30 days',
+                 $9,$10,$11,$12,$13)
+         RETURNING id`,
         [
           store_name,
           owner_name,
@@ -185,11 +186,11 @@ router.post('/client/signup-with-otp', async (req, res) => {
         ]
       );
 
-      const clientId = clientInsert.insertId;
+      const clientId = clientInsert.rows[0]?.id;
 
       // Ambil data client yang baru dibuat
       const clientSelect = await db.query(
-        'SELECT * FROM clients WHERE id = ?',
+        'SELECT * FROM clients WHERE id = $1',
         [clientId]
       );
       const client = clientSelect.rows[0];
@@ -197,11 +198,12 @@ router.post('/client/signup-with-otp', async (req, res) => {
       // INSERT user admin toko
       const userInsert = await db.query(
         `INSERT INTO users (client_id, name, username, password_hash, role)
-         VALUES (?,?,?,?,?)`,
+         VALUES ($1,$2,$3,$4,$5)
+         RETURNING id`,
         [clientId, owner_name, username, passwordHash, 'client_admin']
       );
 
-      return { client, userId: userInsert.insertId, clientId };
+      return { client, userId: userInsert.rows[0]?.id, clientId };
     });
 
 

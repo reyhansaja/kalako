@@ -78,14 +78,12 @@ router.post('/reset-password', async (req, res) => {
 
 		const userRes = await query(
 			`UPDATE users
-			 SET password_hash = ?
-			 WHERE client_id = ? AND role = ?`,
-			[passwordHash, clientId, 'client_admin']
-		);
+             SET password_hash = $1
+             WHERE client_id = $2 AND role = $3`,
+            [passwordHash, clientId, 'client_admin']
+        );
 
-		if (userRes.affectedRows === 0) {
-			return res.status(500).json({ message: 'Gagal mengubah password' });
-		}
+        if (userRes.rowCount === 0) {
 
 		await query('DELETE FROM email_otp_codes WHERE email = $1', [normalizedEmail]);
 

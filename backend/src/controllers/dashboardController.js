@@ -21,9 +21,9 @@ export async function getDashboardSummary(req, res) {
   const clientId = req.client.id;
   const range = req.query.range || "daily";
 
-  let dateFilter = "DATE(t.created_at) = CURDATE()";
-  if (range === "monthly") dateFilter = "DATE_FORMAT(t.created_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')";
-  if (range === "yearly") dateFilter = "YEAR(t.created_at) = YEAR(CURDATE())";
+  let dateFilter = "t.created_at::date = CURRENT_DATE";
+  if (range === "monthly") dateFilter = "DATE_TRUNC('month', t.created_at) = DATE_TRUNC('month', CURRENT_DATE)";
+  if (range === "yearly") dateFilter = "DATE_TRUNC('year', t.created_at) = DATE_TRUNC('year', CURRENT_DATE)";
 
   try {
     const totalStockRes = await query("SELECT COALESCE(SUM(stock),0) AS total FROM products WHERE client_id=$1", [clientId]);
@@ -44,7 +44,7 @@ export async function getDashboardSummary(req, res) {
     );
 
     const chartRes = await query(
-      `SELECT DATE_FORMAT(t.created_at, '%d %b') AS label, SUM(total_amount) AS value
+      `SELECT TO_CHAR(t.created_at, 'DD Mon') AS label, SUM(total_amount) AS value
        FROM sales_transactions t
        WHERE t.client_id=$1 AND ${dateFilter}
        GROUP BY label

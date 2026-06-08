@@ -235,7 +235,7 @@ router.post('/payments/:id/approve', authMiddleware, async (req, res) => {
     if (payment.client_id) {
       await query(
         `UPDATE clients SET suspended_at = NULL, suspension_reason = NULL,
-         trial_ends_at = DATE_ADD(NOW(), INTERVAL 30 DAY), status = ? WHERE id = ?`,
+         trial_ends_at = NOW() + INTERVAL '30 days', status = $1 WHERE id = $2`,
         ['active', payment.client_id]
       );
     }

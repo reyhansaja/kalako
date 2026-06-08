@@ -24,9 +24,10 @@ export async function resolveClientByRequest(req) {
 export function createPayment({ clientId, amount, paymentDate, proofUrl, note }) {
   return query(
     `INSERT INTO payments (client_id, amount, payment_date, method, status, proof_url, proof_uploaded_at, review_note)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     RETURNING id`,
     [clientId, amount, paymentDate, "bank_transfer", "pending", proofUrl, paymentDate, note || null]
-  ).then((result) => query("SELECT * FROM payments WHERE id = ?", [result.insertId]));
+  ).then((result) => query("SELECT * FROM payments WHERE id = $1", [result.rows[0]?.id]));
 }
 
 export function listPaymentsByClient(clientId) {

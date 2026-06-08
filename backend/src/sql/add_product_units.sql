@@ -1,27 +1,26 @@
 -- Migration: Add product_units table for managing product units per client
 
 CREATE TABLE IF NOT EXISTS product_units (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    client_id BIGINT NOT NULL,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    client_id BIGINT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     name VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY product_units_unique_name_per_client (client_id, name),
-    KEY idx_product_units_client_id (client_id),
-    CONSTRAINT product_units_client_id_fk
-        FOREIGN KEY (client_id) REFERENCES clients (id)
-        ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (client_id, name)
+);
 
-INSERT IGNORE INTO product_units (client_id, name)
+CREATE INDEX IF NOT EXISTS idx_product_units_client_id ON product_units(client_id);
+
+INSERT INTO product_units (client_id, name)
 SELECT c.id, u.name
 FROM clients c
 CROSS JOIN (
-    SELECT 'PCS' AS name
-    UNION ALL SELECT 'KG'
-    UNION ALL SELECT 'Liter'
-    UNION ALL SELECT 'Gram'
-    UNION ALL SELECT 'Box'
-    UNION ALL SELECT 'Dus'
-    UNION ALL SELECT 'Karton'
-) AS u;
+    VALUES
+      ('PCS'),
+      ('KG'),
+      ('Liter'),
+      ('Gram'),
+      ('Box'),
+      ('Dus'),
+      ('Karton')
+) AS u(name)
+ON CONFLICT DO NOTHING;

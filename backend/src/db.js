@@ -1,74 +1,54 @@
-import mysql from 'mysql2/promise';
+import { Pool } from 'pg';
 import { DATABASE_URL } from './config.js';
 
 function buildPoolConfig() {
   if (DATABASE_URL) {
-    const url = new URL(DATABASE_URL);
     return {
-      host: url.hostname,
-      port: url.port ? Number(url.port) : 3306,
-      user: decodeURIComponent(url.username),
-      password: decodeURIComponent(url.password),
-      database: url.pathname.replace(/^\//, ''),
-      waitForConnections: true,
-      connectionLimit: 10,
-      namedPlaceholders: false,
+      connectionString: DATABASE_URL,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
+      max: 10,
     };
   }
 
   return {
     host: process.env.DB_HOST || '127.0.0.1',
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER || 'root',
+    port: Number(process.env.DB_PORT || 5432),
+    user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'kalako_db',
-    waitForConnections: true,
-    connectionLimit: 10,
-    namedPlaceholders: false,
+    max: 10,
+    idleTimeoutMillis: 30000,
   };
 }
 
-const rawPool = mysql.createPool(buildPoolConfig());
-
-function normalizeSql(text) {
-  return String(text).replace(/\$(\d+)/g, '?');
-}
+const rawPool = new Pool(buildPoolConfig());
 
 function wrapResult(result) {
-  if (Array.isArray(result)) {
-    return {
-      rows: result,
-      rowCount: result.length,
-    };
-  }
-
   return {
-    rows: [],
-    rowCount: result?.affectedRows ?? 0,
-    affectedRows: result?.affectedRows ?? 0,
-    insertId: result?.insertId ?? null,
+    rows: result.rows ?? [],
+    rowCount: result.rowCount ?? 0,
+    insertId: result.rows?.[0]?.id ?? null,
   };
 }
 
 async function runQuery(text, params = []) {
   const start = Date.now();
-  const [rows] = await rawPool.query(normalizeSql(text), params);
+  const result = await rawPool.query(text, params);
   const duration = Date.now() - start;
-  const wrapped = wrapResult(rows);
+  const wrapped = wrapResult(result);
   console.log('query', { durationMs: duration, rows: wrapped.rowCount });
   return wrapped;
 }
 
 async function getConnection() {
-  const connection = await rawPool.getConnection();
+  const client = await rawPool.connect();
 
   return {
-    query: (text, params = []) =>
-      connection.query(normalizeSql(text), params).then(([rows]) => wrapResult(rows)),
-    beginTransaction: () => connection.beginTransaction(),
-    commit: () => connection.commit(),
-    rollback: () => connection.rollback(),
-    release: () => connection.release(),
+    query: (text, params = []) => client.query(text, params).then(wrapResult),
+    beginTransaction: () => client.query('BEGIN'),
+    commit: () => client.query('COMMIT'),
+    rollback: () => client.query('ROLLBACK'),
+    release: () => client.release(),
   };
 }
 

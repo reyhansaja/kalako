@@ -35,11 +35,13 @@ router.post('/', async (req, res) => {
     const now = new Date();
     const insert = await query(
       `INSERT INTO payments (client_id, amount, payment_date, method, status, proof_url, proof_uploaded_at, review_note)
-       VALUES (?,?,?,?,?,?,?,?)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       RETURNING id`,
       [client.id, amount, now, 'bank_transfer', 'pending', proof_url, now, note || null]
     );
 
-    const newPayment = await query('SELECT * FROM payments WHERE id = ?', [insert.insertId]);
+    const paymentId = insert.rows[0]?.id;
+    const newPayment = await query('SELECT * FROM payments WHERE id = $1', [paymentId]);
     return res.status(201).json({ message: 'Pembayaran diajukan', payment: newPayment.rows[0] });
   } catch (err) {
     console.error('create payment error:', err);

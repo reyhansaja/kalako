@@ -78,16 +78,17 @@ export async function createClientWithAdminUser(payload) {
       ]
     );
 
-    const clientLookup = await query("SELECT * FROM clients WHERE id = ?", [clientRes.insertId]);
+    const clientLookup = await query("SELECT * FROM clients WHERE id = $1", [clientRes.rows[0]?.id]);
     const client = clientLookup.rows[0];
 
     const userRes = await db.query(
       `INSERT INTO users (client_id, name, username, password_hash, role)
-       VALUES ($1,$2,$3,$4,$5)`,
+       VALUES ($1,$2,$3,$4,$5)
+       RETURNING id`,
       [client.id, payload.owner_name, payload.username, payload.passwordHash, "client_admin"]
     );
 
-    return { client, userId: userRes.insertId, clientId: client.id };
+    return { client, userId: userRes.rows[0]?.id, clientId: client.id };
   });
 }
 
