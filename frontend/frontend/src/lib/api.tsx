@@ -28,40 +28,40 @@ function handleUnauthorizedClientState() {
     window.location.replace(withTenantPath("/login", tenant));
   }
 }
+
 /* ============================================================
- *  BASE URL HELPER UNTUK MULTI-TENANT
+ * BASE URL HELPER UNTUK MULTI-TENANT
  * ============================================================ */
 
 /**
  * BASE URL backend multi-tenant
- * 
- * CLIENT (browser):
- *   http://{subdomain}:4000
- *
- * SERVER (SSR):
- *   memakai NEXT_PUBLIC_API_BASE
  */
 export function getApiBase() {
-  const override = readPublicEnv("VITE_API_BASE") || readPublicEnv("NEXT_PUBLIC_API_BASE");
+  // Jika dijalankan di browser cloud run lu (bukan localhost)
+  if (typeof window !== "undefined" && !window.location.hostname.includes("localhost")) {
+    return "https://kalako-backend-1014933316103.us-central1.run.app";
+  }
+
+  // === FALLBACK UNTUK TESTING DI LOKAL LU (LOCALHOST) ===
+  const override = readPublicEnv("VITE_API_URL") || readPublicEnv("VITE_API_BASE") || readPublicEnv("NEXT_PUBLIC_API_BASE");
   const apiPort = readPublicEnv("VITE_API_PORT") || readPublicEnv("NEXT_PUBLIC_API_PORT") || "4000";
-  // === CLIENT SIDE ===
+
+  if (override && override.trim().length > 0) {
+    return override.trim();
+  }
+
   if (typeof window !== "undefined") {
-    if (override && override.trim().length > 0) {
-      return override.trim();
-    }
     const host = window.location.hostname.split(":")[0];
     return `http://${host}:${apiPort}`;
   }
 
-  // === SERVER SIDE ===
-  return override || `http://localhost:${apiPort}`;
+  return `http://localhost:${apiPort}`;
 }
 
 /* ============================================================
- *  AUTH HEADERS
+ * AUTH HEADERS
  * ============================================================ */
 
-// ⬅️ DI SINI PERBAIKAN PENTING: tipe return dibuat Record<string, string>
 export function authHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const token = getToken();
@@ -83,8 +83,14 @@ export function tenantHeader(): Record<string, string> {
     return { "X-Tenant": tenantFromPath };
   }
 
-  const BASE_DOMAIN = readPublicEnv("VITE_BASE_DOMAIN") || readPublicEnv("NEXT_PUBLIC_BASE_DOMAIN") || "localhost";
   const host = window.location.hostname.split(":")[0];
+
+  // 🚨 JIKA DIAKSES DARI DOMAIN BAWAAN CLOUD RUN GCP, JANGAN ANGGAP SEBAGAI SUBDOMAIN
+  if (host.endsWith("run.app")) {
+    return {}; 
+  }
+
+  const BASE_DOMAIN = readPublicEnv("VITE_BASE_DOMAIN") || readPublicEnv("NEXT_PUBLIC_BASE_DOMAIN") || "localhost";
   const hostParts = host.split(".");
   const baseParts = BASE_DOMAIN.split(".");
   const prefixLen = hostParts.length - baseParts.length;
@@ -101,7 +107,6 @@ export function tenantHeader(): Record<string, string> {
 
   return tenant ? { "X-Tenant": tenant } : {};
 }
-
 /** Try to parse response as JSON, otherwise return raw text under __rawText */
 async function parseJsonSafe(res: Response): Promise<any> {
   const text = await res.text();
@@ -128,7 +133,7 @@ async function extractErrorMessage(res: Response, fallback = "Error") {
 }
 
 /* ============================================================
- *  GENERIC GET / POST / PUT / DELETE
+ * GENERIC GET / POST / PUT / DELETE
  * ============================================================ */
 
 export async function apiGet(url: string) {
@@ -194,7 +199,7 @@ export async function apiDelete(url: string) {
 }
 
 /* ============================================================
- *  AUTH APIs — OTP / SIGNUP CLIENT / LOGIN
+ * AUTH APIs — OTP / SIGNUP CLIENT / LOGIN
  * ============================================================ */
 
 /** Kirim OTP ke email */
@@ -287,6 +292,7 @@ export async function loginAdmin(payload: { username: string; password: string }
   const res = await fetch(`${base}/api/admin/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include', // KUNCI UTAMA: Tambahkan baris 
     body: JSON.stringify(payload),
   });
 
@@ -299,7 +305,7 @@ export async function loginAdmin(payload: { username: string; password: string }
 }
 
 /* ============================================================
- *  DASHBOARD API (Daily / Monthly / Yearly)
+ * DASHBOARD API (Daily / Monthly / Yearly)
  * ============================================================ */
 
 export async function getClientInfo() {
@@ -337,7 +343,7 @@ export async function getDashboardSummary(
 }
 
 /* ============================================================
- *  RETAIL STOK API
+ * RETAIL STOK API
  * ============================================================ */
 
 /** Ambil data stok retail */
@@ -444,7 +450,7 @@ export async function deleteRetailProduct(id: number) {
 }
 
 /* ============================================================
- *  KATEGORI PRODUK
+ * KATEGORI PRODUK
  * ============================================================ */
 
 export async function getRetailCategories() {
@@ -482,7 +488,7 @@ export async function addRetailCategory(payload: { name: string }) {
 }
 
 /* ============================================================
- *  SATUAN PRODUK
+ * SATUAN PRODUK
  * ============================================================ */
 
 export async function getRetailUnits() {
@@ -520,7 +526,7 @@ export async function addRetailUnit(payload: { name: string }) {
 }
 
 /* ============================================================
- *  TRANSAKSI KASIR
+ * TRANSAKSI KASIR
  * ============================================================ */
 
 export async function createTransaction(payload: {
@@ -589,7 +595,7 @@ export async function getTransactionItems(transactionId: number) {
 }
 
 /* ============================================================
- *  LOGOUT
+ * LOGOUT
  * ============================================================ */
 export async function logout() {
   const base = getApiBase();
@@ -620,7 +626,7 @@ export async function logout() {
 }
 
 /* ============================================================
- *  REPORTS API
+ * REPORTS API
  * ============================================================ */
 
 export async function getProductReport(params: {
@@ -671,7 +677,7 @@ export async function getMonthlySalesData() {
 }
 
 /* ============================================================
- *  PAYMENTS / SUSPEND WORKFLOW (tenant + admin helpers)
+ * PAYMENTS / SUSPEND WORKFLOW (tenant + admin helpers)
  * ============================================================ */
 
 export async function submitPayment(payload: { amount: number; note?: string; proof_url: string }) {

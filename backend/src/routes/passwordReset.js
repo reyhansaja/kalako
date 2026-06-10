@@ -1,5 +1,5 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import { query } from '../db.js';
 import { sendEmail } from '../utils/sendEmail.js';
 
@@ -83,15 +83,17 @@ router.post('/reset-password', async (req, res) => {
             [passwordHash, clientId, 'client_admin']
         );
 
-        if (userRes.rowCount === 0) {
+    if (userRes.rowCount === 0) {
+            return res.status(400).json({ message: 'Gagal memperbarui password' });
+        }
 
-		await query('DELETE FROM email_otp_codes WHERE email = $1', [normalizedEmail]);
+        await query('DELETE FROM email_otp_codes WHERE email = $1', [email]);
 
-		res.json({ message: 'Password berhasil direset' });
-	} catch (err) {
-		console.error('[Reset Password Error]:', err);
-		res.status(500).json({ message: 'Terjadi kesalahan server' });
-	}
+        res.json({ message: 'Password berhasil direset' });
+    } catch (err) {
+        console.error('[Reset Password Error]:', err);
+        res.status(500).json({ message: 'Terjadi kesalahan server' });
+    }
 });
 
 export default router;

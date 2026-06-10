@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { query } from "../db.js";
 import { JWT_SECRET, JWT_EXPIRES_IN } from "../config.js";

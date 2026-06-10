@@ -1,5 +1,5 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { query } from '../db.js';
 import { authMiddleware } from '../middleware/auth.js';

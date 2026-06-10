@@ -9,11 +9,12 @@
     "start": "node src/server.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "@supabase/supabase-js": "^2.43.4",
+    "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "cron": "^4.4.0",
-    "dotenv": "^16.4.0",
+    "dotenv": "^16.6.1",
     "exceljs": "^4.3.0",
     "express": "^4.19.0",
     "jsonwebtoken": "^9.0.2",
