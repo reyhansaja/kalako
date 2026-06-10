@@ -67,7 +67,7 @@ export default function RootLoginPage() {
       setToken(data.token);
 
       // Redirect ke tenant path dan langsung auto-set token
-      const baseDomain = readPublicEnv("VITE_BASE_DOMAIN") || readPublicEnv("NEXT_PUBLIC_BASE_DOMAIN") || "localhost";
+      const baseDomain = readPublicEnv("VITE_BASE_DOMAIN") || readPublicEnv("NEXT_PUBLIC_BASE_DOMAIN") || window.location.hostname;
       // Default port only for local/dev; leave empty in production domains
       const isLocal = baseDomain.endsWith(".local") || baseDomain === "localhost";
       const frontendPort = readPublicEnv("VITE_FRONTEND_PORT") || readPublicEnv("NEXT_PUBLIC_FRONTEND_PORT") || (isLocal ? "5173" : "");

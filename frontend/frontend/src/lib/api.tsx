@@ -37,25 +37,7 @@ function handleUnauthorizedClientState() {
  * BASE URL backend multi-tenant
  */
 export function getApiBase() {
-  // Jika dijalankan di browser cloud run lu (bukan localhost)
-  if (typeof window !== "undefined" && !window.location.hostname.includes("localhost")) {
-    return "https://kalako-backend-1014933316103.us-central1.run.app";
-  }
-
-  // === FALLBACK UNTUK TESTING DI LOKAL LU (LOCALHOST) ===
-  const override = readPublicEnv("VITE_API_URL") || readPublicEnv("VITE_API_BASE") || readPublicEnv("NEXT_PUBLIC_API_BASE");
-  const apiPort = readPublicEnv("VITE_API_PORT") || readPublicEnv("NEXT_PUBLIC_API_PORT") || "4000";
-
-  if (override && override.trim().length > 0) {
-    return override.trim();
-  }
-
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname.split(":")[0];
-    return `http://${host}:${apiPort}`;
-  }
-
-  return `http://localhost:${apiPort}`;
+  return "https://kalako-backend-1014933316103.us-central1.run.app";
 }
 
 /* ============================================================
